@@ -18,9 +18,9 @@ const int recCount = 30;
 const int xValues[recCount] = { 140, 147, 153, 160, 166, 173, 179, 185, 191, 197, 204, 210, 216, 222, 229, 235, 242, 249, 255, 262, 269, 276, 284, 291, 298, 305, 313, 320, 327, 334 };
 const int yValues[recCount] = { 174, 171, 168, 164, 161, 157, 154, 150, 147, 143, 140, 136, 133, 129, 125, 122, 120, 117, 115, 114, 113, 112, 112, 112, 112, 112, 112, 112, 112, 112 };
 
-float volt = 0;
+float volt = -1;
 int rpm = -1;
-int emap = 0;
+int emap = -1;
 int clt = -40;
 int iat = -40;
 int idle = -1;
@@ -35,9 +35,7 @@ RecDetail recList[recCount];
 
 
 void setup() {
-  Serial2.begin(115200, SERIAL_8N1, RXD2, TXD2);
-  Serial.begin(9600);
-
+  
   for (int i = 0; i < recCount; i++) {
     if (i < 27) {
       recList[i] = { xValues[i], yValues[i] - 5, TFT_GREEN, TFT_DARKGREEN };
@@ -53,6 +51,8 @@ void setup() {
   tft.setSwapBytes(true);
   tft.pushImage(40, 80, 400, 160, levin_logo);
   delay(2000);
+  Serial2.begin(115200, SERIAL_8N1, RXD2, TXD2);
+  Serial.begin(9600);
 }
 void drawConnecting() {
   tft.fillScreen(TFT_BLACK);  // Clear the screen
@@ -61,6 +61,8 @@ void drawConnecting() {
 }
 
 void initTft() {
+  resetPrevData();
+
   tft.fillScreen(TFT_BLACK);  // Clear the screen
 
   tft.pushImage(137, 130, 206, 82, rpm_line);
@@ -142,10 +144,10 @@ void loop() {
   const int s = getWord(37);
 
   const int t = getByte(24) / 2;
-  const float b = (m - getWord(40)) / 6.895;
+  const float b = (m - getByte(40)) / 6.895;
   const int a = getByte(23);
 
-  if (c == -40 & i == -40) {
+  if (c == -40 || i == -40) {
     if (connecting == false) {
       drawConnecting();
       connecting = true;
@@ -166,7 +168,7 @@ void loop() {
     drawTps(t);
     drawBoost(b);
     drawAdvance(a);
-    delay(15);
+    delay(20);
   };
 }
 
@@ -285,15 +287,27 @@ void drawRpm(int value) {
 
     // Draw Rpm
     if (start < end) {
-      for (int i = start; i <= end; i++) {
+      for (int i = start; i < end; i++) {
         tft.fillRect(recList[i].x, recList[i].y, 4, 20, recList[i].color);
       }
     } else if (start > end) {
-      for (int i = end; i <= start; i++) {
+      for (int i = end; i < start; i++) {
         tft.fillRect(recList[i].x, recList[i].y, 4, 20, recList[i].bg_color);
       }
     };
 
     rpm = value;
   };
+}
+
+void resetPrevData() {
+  volt = -1;
+  rpm = -1;
+  emap = -1;
+  clt = -40;
+  iat = -40;
+  idle = -1;
+  tps = -1;
+  boost = -10;
+  advance = -40;
 }
