@@ -35,6 +35,7 @@ RecDetail recList[recCount];
 
 
 void setup() {
+  // set rev line rectangles position and color
   for (int i = 0; i < recCount; i++) {
     if (i < 27) {
       recList[i] = { xValues[i], yValues[i] - 5, TFT_GREEN, TFT_DARKGREEN };
@@ -50,9 +51,11 @@ void setup() {
   tft.setSwapBytes(true);
   tft.pushImage(40, 80, 400, 160, levin_logo);
   delay(2000);
+  // Serial should be started after the tft
   Serial2.begin(115200, SERIAL_8N1, RXD2, TXD2);
   Serial.begin(9600);
 }
+
 void drawConnecting() {
   tft.fillScreen(TFT_BLACK);  // Clear the screen
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
@@ -60,22 +63,24 @@ void drawConnecting() {
 }
 
 void initTft() {
-  resetPrevData();
+  resetPrevData();  // Reset previous data
 
   tft.fillScreen(TFT_BLACK);  // Clear the screen
 
-  tft.pushImage(137, 130, 206, 82, rpm_line);
+  tft.pushImage(137, 130, 206, 82, rpm_line);  // draw the rpm line gauge
 
+  // Draw the base rev rectangles
   for (int i = 0; i < recCount; i++) {
     tft.fillRect(recList[i].x, recList[i].y, 4, 20, recList[i].bg_color);
   }
 
+  // Draw the base gauges shapes
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.drawCentreString("Engine RPM", 300, 150, 2);
   drawBaseGauge(76, 76, 66, "Battery", "Volt", 0, 18);
-  drawBaseGauge(404, 76, 66, "CLT", "C", -40, 120);
+  drawBaseGauge(404, 76, 66, "CLT", "C", 0, 120);
   drawBaseGauge(76, 244, 66, "Engine Map", "kPa", 0, 200);
-  drawBaseGauge(404, 244, 66, "IAT", "C", -40, 120);
+  drawBaseGauge(404, 244, 66, "IAT", "C", 0, 120);
   drawBaseBox(156, 14, "IAC Load", "");
   drawBaseBox(244, 14, "TPS", "%");
   drawBaseBox(156, 226, "Boost", "PSI");
@@ -99,8 +104,6 @@ void drawBaseGauge(int x, int y, int radius, String label, String unit, int min,
 }
 
 void drawArcGauge(int x, int y, int radius, float value, float lastValue, int min, int max, int low, int high) {
-  // value = constrain(value, min, max);
-  // lastValue = constrain(lastValue, min, max);
   float startAngle = map(lastValue * 10, min * 10, max * 10, 45, 315);
   float endAngle = map(value * 10, min * 10, max * 10, 45, 315);  // Adjust the range as needed
   startAngle = constrain(startAngle, 45, 315);
@@ -134,19 +137,19 @@ void loop() {
     lastUpdate = millis();
   }
 
+  // get the data from the speediuno
   const float v = getByte(9) / 10.0;
   const int c = getByte(7) - 40;
   const int r = getWord(14);
   const int i = getByte(6) - 40;
   const int m = getWord(4);
-
   const int s = getWord(37);
-
   const int t = getByte(24) / 2;
   const int ba = getByte(40);
   const float b = (m - ba) / 6.895;
   const int a = getByte(23);
 
+  // check if the data is invalid show connecting
   if (c == -40 || i == -40) {
     if (connecting == false) {
       drawConnecting();
@@ -225,49 +228,57 @@ void drawAdvance(int value) {
 }
 
 void drawVolt(float value) {
+  const int x = 76;
+  const int y = 76;
   if (value != volt) {
     value = constrain(value, 0, 24);
     if (volt > 9.95 && value < 9.95) {
-      tft.fillRect(76 - 30, 76 - 10, 60, 25, TFT_BLACK);
+      tft.fillRect(x - 30, y - 10, 60, 25, TFT_BLACK);
     };
-    drawArcGauge(76, 76, 66, value, volt, 0, 18, 11, 15);
-    tft.drawCentreString(String(value, 1), 76, 76 - 10, 4);
+    drawArcGauge(x, y, 66, value, volt, 0, 18, 11, 15);
+    tft.drawCentreString(String(value, 1), x, y - 10, 4);
     volt = value;
   };
 }
 
 void drawClt(int value) {
+  const int x = 404;
+  const int y = 76;
   if (value != clt) {
     value = constrain(value, -40, 150);
     if ((clt > 99.95 && value < 99.95) || (clt > 9.95 && value < 9.95) || (clt < -0.05 && value > -0.05) || (clt < -10.05 && value > -10.05)) {
-      tft.fillRect(404 - 30, 76 - 10, 60, 25, TFT_BLACK);
+      tft.fillRect(x - 30, y - 10, 60, 25, TFT_BLACK);
     };
-    drawArcGauge(404, 76, 66, value, clt, -40, 120, 60, 95);
-    tft.drawCentreString(String(value), 404, 76 - 10, 4);
+    drawArcGauge(x, y, 66, value, clt, 0, 120, 60, 100);
+    tft.drawCentreString(String(value), x, y - 10, 4);
     clt = value;
   };
 }
 
 void drawMap(int value, int baroValue) {
+  const int x = 76;
+  const int y = 244;
   if (value != emap) {
     value = constrain(value, 0, 300);
     if (emap > 99.5 && value < 99.5) {
-      tft.fillRect(76 - 30, 244 - 10, 60, 25, TFT_BLACK);
+      tft.fillRect(x - 30, y - 10, 60, 25, TFT_BLACK);
     };
-    drawArcGauge(76, 244, 66, value, emap, 0, 200, baroValue, 150);
-    tft.drawCentreString(String(value), 76, 244 - 10, 4);
+    drawArcGauge(x, y, 66, value, emap, 0, 200, baroValue, 150);
+    tft.drawCentreString(String(value), x, y - 10, 4);
     emap = value;
   };
 }
 
 void drawIat(int value) {
+  const int x = 404;
+  const int y = 244;
   if (value != iat) {
     value = constrain(value, -40, 150);
     if ((iat > 99.95 && value < 99.95) || (iat > 9.95 && value < 9.95) || (iat < -0.05 && value > -0.05) || (iat < -10.05 && value > -10.05)) {
-      tft.fillRect(404 - 30, 244 - 10, 60, 25, TFT_BLACK);
+      tft.fillRect(x - 30, y - 10, 60, 25, TFT_BLACK);
     };
-    drawArcGauge(404, 244, 66, value, iat, -40, 120, 20, 80);
-    tft.drawCentreString(String(value), 404, 244 - 10, 4);
+    drawArcGauge(x, y, 66, value, iat, 0, 120, 35, 85);
+    tft.drawCentreString(String(value), x, y - 10, 4);
     iat = value;
   };
 }
