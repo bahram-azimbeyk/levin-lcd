@@ -35,7 +35,6 @@ RecDetail recList[recCount];
 
 
 void setup() {
-  
   for (int i = 0; i < recCount; i++) {
     if (i < 27) {
       recList[i] = { xValues[i], yValues[i] - 5, TFT_GREEN, TFT_DARKGREEN };
@@ -144,7 +143,8 @@ void loop() {
   const int s = getWord(37);
 
   const int t = getByte(24) / 2;
-  const float b = (m - getByte(40)) / 6.895;
+  const int ba = getByte(40);
+  const float b = (m - ba) / 6.895;
   const int a = getByte(23);
 
   if (c == -40 || i == -40) {
@@ -161,7 +161,7 @@ void loop() {
     drawVolt(v);
     drawClt(c);
     drawIat(i);
-    drawMap(m);
+    drawMap(m, ba);
     drawRpm(r);
 
     drawIdle(s);
@@ -202,8 +202,8 @@ void drawBoost(float value) {
   if (value != boost) {
     const int x = 156;
     const int y = 226;
-    value = constrain(value, -12, 60);
-    if ((boost > 9.95 && value < 9.95) || (boost < -0.05 && value > -0.05) || (boost < -10.05 && value > -10.05)) {
+    value = constrain(value, -9.9, 40);
+    if ((boost > 9.95 && value < 9.95) || (boost < -0.05 && value > -0.05)) {
       tft.fillRect(x + 10, y + 30, 60, 25, TFT_BLACK);
     };
     tft.drawCentreString(String(value, 1), x + 40, y + 30, 4);
@@ -248,13 +248,13 @@ void drawClt(int value) {
   };
 }
 
-void drawMap(int value) {
+void drawMap(int value, int baroValue) {
   if (value != emap) {
     value = constrain(value, 0, 300);
     if (emap > 99.5 && value < 99.5) {
       tft.fillRect(76 - 30, 244 - 10, 60, 25, TFT_BLACK);
     };
-    drawArcGauge(76, 244, 66, value, emap, 0, 200, 100, 200);
+    drawArcGauge(76, 244, 66, value, emap, 0, 200, baroValue, 150);
     tft.drawCentreString(String(value), 76, 244 - 10, 4);
     emap = value;
   };
